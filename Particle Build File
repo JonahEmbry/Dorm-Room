@@ -1,0 +1,88 @@
+//Dorm Room Controller  
+//Written by Jonah Embry
+//Features: Alarm, Power Conservation, GPS 
+
+// Variables
+int led = D1;
+int flag = 0;
+
+// setup() is run only once, it's where we set up GPIO and initialise peripherals
+void setup() {
+  // Setup GPIO
+  pinMode(led,OUTPUT); // Our LED pin is output (lighting up the LED)
+  //pinMode(boardLed,OUTPUT); // Our on-board LED is output as well
+  digitalWrite(led,LOW);
+  //digitalWrite(boardLed,LOW);
+  
+  // Subscribe to an event published by IFTTT using Particle.subscribe
+  //Event Trigger
+  Particle.subscribe("dorm1234", Dorm);
+  
+}
+
+// loop() runs continuously, it's our infinite loop. In this program we only want to repsond to events, so loop can be empty.
+void loop() {
+
+}
+
+// Now for the myHandler function, which is called when the Particle cloud tells us that our email event is published.
+
+//Alarm ###################################################
+void Dorm(const char *event, const char *data)
+{
+    //Alarm on
+    if(strcmp(data, "alarm_on")==0)    
+    {
+        Process proc = Process::run("/home/pi/Alarm/backup.py");
+        //digitalWrite(led, HIGH);
+        //proc.wait();
+    }
+    //Alarm off
+    else if (strcmp(data, "alarm_off")==0)
+    {
+        Process proc = Process::run("/home/pi/Alarm/flag.py");
+        //proc.wait();
+    }
+    //Turn off powerstrip
+    else if (strcmp(data, "power_down")==0)
+    {
+        digitalWrite(led, HIGH);
+    }
+    //Turn on powerstrip
+    else if (strcmp(data, "power_up")==0)
+    {
+        digitalWrite(led, LOW);
+    }
+    //Leaves GPS zone
+    //If statement tracks how many people are in the GPS area. If there
+    //is no one in the GPS area, it turns off the powerstrip. It functions
+    //exactly like the Leave.py file, using the Come event
+    else if (strcmp(data, "leave")==0)
+    {
+        Process proc = Process::run("/home/pi/GPS/Leave.py");
+        //Power save feature
+        if(flag == 0){
+            flag = flag + 1;
+            digitalWrite(led, HIGH);
+            delay(500);
+            digitalWrite(led, LOW);
+        }
+        else{
+            flag = flag + 1;
+            digitalWrite(led, HIGH);
+        }
+
+    }
+    //Comes into GPS zone
+    //Works in conjunction with Leave event
+    else if (strcmp(data, "come")==0)
+    {
+        Process proc = Process::run("/home/pi/GPS/Come.py");
+        if(flag > 0){
+            flag = flag - 1;
+            //digitalWrite(led, LOW);
+        }
+        
+    }
+    
+}
