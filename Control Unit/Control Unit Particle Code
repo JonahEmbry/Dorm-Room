@@ -1,0 +1,135 @@
+//Dorm Control Unit
+//Update: 7/19/2018
+//Written by Jonah Embry
+//Features: Remote Access, Alarm, Power Conservation, GPS, Door Security 
+
+// Variables
+int led = D1;
+int ppl = 2; //Keeps track of how many people are in the room ()
+int sleepmode = 0; //Triggers when sleepmode is activated. If motion is sensed, turns on lights to dim setting, similar to a night light
+//int secflag = 0; //Security System flag- similar to ppl variable, security system activates when both members have left GPS area
+
+// setup() is run only once, it's where we set up GPIO and initialise peripherals
+void setup() {
+  // Setup GPIO
+  pinMode(led,OUTPUT); // Our LED pin is output (lighting up the LED)
+  //pinMode(boardLed,OUTPUT); // Our on-board LED is output as well
+  digitalWrite(led,LOW);
+  //digitalWrite(boardLed,LOW);
+  
+  // Subscribe to an event published by IFTTT using Particle.subscribe
+  //Event Trigger
+  Particle.subscribe("dorm1234", Dorm);
+  
+}
+
+// loop() runs continuously, it's our infinite loop. In this program we only want to respond to events, so loop can be empty.
+void loop() {
+
+}
+
+// Now for the myHandler function, which is called when the Particle cloud tells us that our email event is published.
+
+void Dorm(const char *event, const char *data)
+{
+    //IFTTT Button trigger- Alarm on
+    if(strcmp(data, "alarm_on")==0)    
+    {
+        Process proc = Process::run("/home/pi/Alarm/backup.py");    // Run alarm file
+        //digitalWrite(led, HIGH);
+        //proc.wait();
+    }
+    //Alexa phrase trigger- Alarm off
+    else if (strcmp(data, "alarm_off")==0)
+    {
+        Process proc = Process::run("/home/pi/Alarm/flag.py");      // Run alarm stopping file
+        //proc.wait();
+    }
+    //IFTTT Button, GPS trigger- Turn off powerstrip
+    else if (strcmp(data, "power_down")==0)
+    {
+        digitalWrite(led, HIGH);                                    // Turns off Powerstrip (switches relay's position)
+    }
+    //Alexa phrase trigger- Turn on powerstrip
+    else if (strcmp(data, "power_up")==0)
+    {
+        digitalWrite(led, LOW);                                     // Turns on powerstrip (switches relay's position)
+    }
+    
+    //IFTTT GPS trigger- Leaves GPS zone
+    //If statement tracks how many people are in the GPS area. If there is no one in
+    //the GPS area, it turns off the powerstrip, locks the door, and arms the alarm.
+    else if (strcmp(data, "leave")==0)
+    {
+        Process proc = Process::run("/home/pi/GPS/Leave.py");
+        
+        if(ppl == 2){                   // If both roommates were present
+            ppl = ppl - 1;              // Update roommate count (to one)
+            digitalWrite(led, HIGH);    // Turn ON LED
+            delay(500);                 // Pause for half a second
+            digitalWrite(led, LOW);     // Turn OFF LED
+        }
+        
+        else{                           // If one roommate was present
+            ppl = ppl - 1;              // Update to roommate count (to zero)
+            digitalWrite(led, HIGH);    //turns off Power Save strip (because there is no one in the room)
+            Particle.publish("dorm1234", "Arm_system");             //Arms Security System when both people have left the GPS area
+            Particle.publish("dorm1234", "lock_door");          //Locks door
+        }
+
+    }
+    // IFTTT GPS trigger-
+    //Comes into GPS zone
+    //Works in conjunction with Leave event
+    else if (strcmp(data, "come")==0)
+    {
+        Process proc = Process::run("/home/pi/GPS/Come.py");
+        if(ppl < 1){
+            ppl = ppl + 1;
+            //digitalWrite(led, LOW);
+        }
+        
+    }
+    //IFTTT Button trigger- Remote Shutdown
+    else if (strcmp(data, "shutdown")==0)
+    {
+        Process proc = Process::run("/home/pi/Shutdown/shutdown.py");
+    
+    }
+    //Door open trigger- Security System Arm
+    else if (strcmp(data, "alert")==0)
+    {
+       // delay(5000);
+       // if(secflag != 1){
+        Process proc = Process::run("/home/pi/Security/SecurityAlert.py");    
+      //  }
+        
+    }
+    //IFTTT Button trigger- Security System Disarm    
+    else if (strcmp(data, "disarm")==0)
+    {
+        Process proc = Process::run("/home/pi/Security/SFlag.py");
+    
+    }
+    // Goodnight Sequence -Alexa phrase trigger, shuts off powerstrip, lights
+    else if(strcmp(data, "goodnight_sequence")==0)
+    {
+        digitalWrite(led, HIGH);                                    // Turns off Powerstrip (switches relay's position)   
+        
+        //Light sequence- turn lights red for 10-15 minutes, then turn them off
+    }
+    // Wake Up Sequence -Alexa alarm trigger, turns on power strip, lights
+    else if(strcmp(data, "wakeup_sequence")==0)
+    {
+        digitalWrite(led, HIGH);                            // Turns on powerstrip (switches relay position)
+        
+        //Turns on lights
+    }
+    //Night light motion sensor. If motion is sensed, turns on lights to a dim setting for 3 min
+    else if(strcmp(data, "motion_trigger")==0)
+    {
+        //Turn on lights to dim setting
+        //delay(120000);
+        //Turn off lights
+    }
+}
