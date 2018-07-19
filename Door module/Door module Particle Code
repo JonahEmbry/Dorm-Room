@@ -1,0 +1,152 @@
+//Door Alarm with Break Away Lock  
+//Written by Jonah Embry
+//Features: Remote Access, GPS, Door Security 
+
+int led = D7; // LED on the Photon, use to test outputs
+int pushButton = D2; // Push button is connected to D2
+int magnetPin = D3; // magnet part is connected to D3
+int flag = 0; //flag variable, limits door open event (publishes once instead of repeatedly)
+int arm = 0; //Turns SS on or off
+int ppl = 2; //Tracks how people are in the room
+int lock_status = 0; //Tracks the status of the lock (0 is open, 1 is locked)
+// This routine runs only once upon reset
+void setup() 
+{
+  pinMode(led, OUTPUT); // Initialize D7 pin as output
+  pinMode(pushButton, INPUT_PULLUP); // Initialize D2 pin as input with an internal pull-up resistor
+  pinMode(magnetPin, INPUT_PULLUP); // Initialize D3 pin as input with an internal pull-up resistor
+  
+  
+    // Subscribe to an event published by IFTTT using Particle.subscribe
+  //Event Trigger
+  Particle.subscribe("dorm1234", Dorm);
+}
+
+// This routine loops forever
+void loop() 
+{
+  // Creates temporary variables
+  int pushButtonState; 
+  int magnetValState;
+
+  // Sets temporary variables
+  magnetValState = digitalRead(magnetPin);
+  pushButtonState = digitalRead(pushButton);
+
+  // Alarm system
+  if(arm == 1){                                 // Is sytem armed
+      if(magnetValState == HIGH){               // Was door opened
+        if(flag == 0){                          // Has Alert been called before
+                flag = 1;                           // Turn off Alert Event
+        
+                digitalWrite(led, HIGH);            // Turn ON LED
+                Particle.publish("dorm1234", "Alert");  //Publishes Alert event
+                delay(1000);                        //Delay for 1 second
+                digitalWrite(led, LOW);             //Turn OFF LED
+        }
+      }
+      if(magnetValState == LOW){                // Was door closed
+          if(flag == 1){                        // If door has been opened before
+                  flag = 0;                         // Turn on Alert Event
+          }
+      }
+  }
+  
+  // Button- turns off alarm, disarms system
+  if(pushButtonState == LOW){                    // If button is pressed
+        Particle.publish("dorm1234", "Disarm");   // Publishes Button Pressed Event
+        digitalWrite(led, HIGH);                     // Turn ON LED
+        delay(500);                                  // Pause for half a second
+        digitalWrite(led, LOW);                      // Turn off LED
+        arm = 0;                                     // Disarm system
+  }
+  else
+  {
+        digitalWrite(led, LOW);                      // Turn OFF the LED 
+  }
+
+}
+
+void Dorm(const char *event, const char *data)
+{
+    if(strcmp(data, "trig_door")==0)             // Lock door   
+    {
+        if(lock_status == 0)            // If door is unlocked
+        {
+            //Code to flash red LED
+            //Replace to turn trigger motor
+            digitalWrite(led, HIGH);  // Turn ON the LED
+            delay(500);
+            digitalWrite(led, LOW);            
+            lock_status = 1;            // Status is now locked
+        }
+        else                            // If door is locked
+        {
+            //Code to flash green LED
+            //Replace to turn trigger motor
+            digitalWrite(led, HIGH);  // Turn ON the LED
+            delay(500);
+            digitalWrite(led, LOW);   
+            
+            lock_status = 0;        // Status is now unlocked            
+        }
+    } 
+
+    // Arm system
+    else if(strcmp(data, "Arm_system")==0)
+    {
+        arm = 1;                                    // Arm system
+        digitalWrite(led, HIGH);                    // Turn ON LED
+        delay(500);                                 // Pause for half a second
+        digitalWrite(led, LOW);                     // Turn OFF LED
+    
+        if(lock_status == 1)            // If door is unlocked
+        {
+            //Code to flash red LED
+            //Replace to turn trigger motor
+            digitalWrite(led, HIGH);  // Turn ON the LED
+            delay(500);
+            digitalWrite(led, LOW);            
+            lock_status = 1;            // Status is now locked
+        }    
+    }
+    
+    // 60-sec Delay arm system
+    else if(strcmp(data, "leaving_protocol")==0)
+    {
+        //Code to flash red LED        
+        delay(30000);                               // Delay 30 seconds
+
+        arm = 1;                                    // Arm system
+        digitalWrite(led, HIGH);                    // Turn ON LED
+        delay(500);                                 // Pause for half a second
+        digitalWrite(led, LOW);                     // Turn OFF LED
+    
+        if(lock_status == 1)            // If door is unlocked
+        {
+            //Code to flash red LED
+            //Replace to turn trigger motor
+            digitalWrite(led, HIGH);  // Turn ON the LED
+            delay(500);
+            digitalWrite(led, LOW);            
+            lock_status = 1;            // Status is now locked
+        }         
+    }
+    
+    // Disarm system
+    else if(strcmp(data, "Home_coming")==0)
+    {
+        arm = 0;                                // Disarm system
+    
+       if(lock_status == 1)     // If door is locked
+       {
+            //Code to flash green LED
+            //Replace to turn trigger motor
+            digitalWrite(led, HIGH);  // Turn ON the LED
+            delay(500);
+            digitalWrite(led, LOW);   
+            
+            lock_status = 0;        // Status is now unlocked
+       }    
+    }
+}
