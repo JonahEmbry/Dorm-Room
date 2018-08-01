@@ -5,4 +5,4 @@ The Door Module Particle Code should be opened within the Github editor, copied 
 
 Current features: Security System, Push button
 
-Information for building the Control Unit can be found at embryindustries.weebly.com.
+Information for building the Door Module can be found at embryindustries.weebly.com.
