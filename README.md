@@ -1,4 +1,6 @@
 # Dorm-Room
 Smart control of various features of my dorm room.
 
-Features: Amazon Alexa, IFTTT, Particle, and Raspberry Pi (model 1 b+)
+Control Unit- Raspberry Pi (model 1 b+), Python, Particle (C++), IFTTT, Amazon Alexa
+Door Module- Particle Photon, Particle (C++), IFTTT, Amazon Alexa
+
