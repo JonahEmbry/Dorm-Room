@@ -23,7 +23,7 @@ check = "no"
 
 while(check  == "no"):
         #Plays sound (wave) file
-	os.system('aplay /home/pi/Security/SA1.wav')
+	os.system('aplay /home/pi/Security/piano2.wav')
         #Flag count
 	beak = beak + 1
 	#Check database
